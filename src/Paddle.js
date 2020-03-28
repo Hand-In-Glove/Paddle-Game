@@ -1,6 +1,6 @@
 export default class Paddle {
-  constructor(gameWidth, gameHeight) {
-    this.gameWidth = gameWidth;
+  constructor(game) {
+    this.gameWidth = game.gameWidth;
     this.height = 20;
     this.width = 150;
 
@@ -9,13 +9,16 @@ export default class Paddle {
     this.speed = 0;
 
     this.position = {
-      x: gameWidth / 2 - this.width / 2,
-      y: gameHeight - this.height - 10
+      x: game.gameWidth / 2 - this.width / 2,
+      y: game.gameHeight - this.height - 10
     };
   }
 
   draw(ctx) {
-    ctx.fillStyle = "slategray";
+    const grd = ctx.createLinearGradient(0, 550, 800, 600);
+    grd.addColorStop(0, "yellow");
+    grd.addColorStop(1, "orange");
+    ctx.fillStyle = grd;
     ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
   }
 
@@ -32,10 +35,6 @@ export default class Paddle {
   }
 
   update(deltaTime) {
-    if (!deltaTime) {
-      return;
-    }
-
     this.position.x += this.speed;
 
     if (this.position.x < 0) {

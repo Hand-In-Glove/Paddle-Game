@@ -132,24 +132,27 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
 var Paddle = /*#__PURE__*/function () {
-  function Paddle(gameWidth, gameHeight) {
+  function Paddle(game) {
     _classCallCheck(this, Paddle);
 
-    this.gameWidth = gameWidth;
+    this.gameWidth = game.gameWidth;
     this.height = 20;
     this.width = 150;
     this.maxSpeed = 5;
     this.speed = 0;
     this.position = {
-      x: gameWidth / 2 - this.width / 2,
-      y: gameHeight - this.height - 10
+      x: game.gameWidth / 2 - this.width / 2,
+      y: game.gameHeight - this.height - 10
     };
   }
 
   _createClass(Paddle, [{
     key: "draw",
     value: function draw(ctx) {
-      ctx.fillStyle = "slategray";
+      var grd = ctx.createLinearGradient(0, 550, 800, 600);
+      grd.addColorStop(0, "yellow");
+      grd.addColorStop(1, "orange");
+      ctx.fillStyle = grd;
       ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
     }
   }, {
@@ -170,10 +173,6 @@ var Paddle = /*#__PURE__*/function () {
   }, {
     key: "update",
     value: function update(deltaTime) {
-      if (!deltaTime) {
-        return;
-      }
-
       this.position.x += this.speed;
 
       if (this.position.x < 0) {
@@ -243,28 +242,105 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
 var Ball = /*#__PURE__*/function () {
-  function Ball() {
+  function Ball(game) {
     _classCallCheck(this, Ball);
 
     this.image = document.querySelector("#gameBall");
+    this.gameWidth = game.gameWidth;
+    this.gameHeight = game.gameHeight;
+    this.game = game;
+    this.position = {
+      x: 10,
+      y: 10
+    };
+    this.speed = {
+      x: 5,
+      y: 5
+    };
+    this.size = 40;
   }
 
   _createClass(Ball, [{
     key: "draw",
     value: function draw(ctx) {
-      ctx.drawImage(this.image, 10, 10, 40, 40);
+      ctx.drawImage(this.image, this.position.x, this.position.y, this.size, this.size);
     }
   }, {
     key: "update",
-    value: function update() {}
+    value: function update(deltaTime) {
+      this.position.x += this.speed.x;
+      this.position.y += this.speed.y; //collision check left and right boundry
+
+      if (this.position.x + this.size > this.gameWidth || this.position.x < 0) {
+        this.speed.x = -this.speed.x;
+      } //collision check top and bottom boundry
+
+
+      if (this.position.y + this.size > this.gameHeight || this.position.y < 0) {
+        this.speed.y = -this.speed.y;
+      } //collision check paddle
+
+
+      var leftPaddle = this.game.paddle.position.x;
+      var rightPaddle = this.game.paddle.position.x + this.game.paddle.width;
+
+      if (this.position.y + this.size >= this.game.paddle.position.y && this.position.x >= leftPaddle && this.position.x + this.size <= rightPaddle) {
+        this.speed.y = -this.speed.y;
+        this.position.y = this.game.paddle.position.y - this.size;
+      }
+    }
   }]);
 
   return Ball;
 }();
 
 exports.default = Ball;
-},{}],"src/index.js":[function(require,module,exports) {
+},{}],"src/Brick.js":[function(require,module,exports) {
 "use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Brick = /*#__PURE__*/function () {
+  function Brick(game, position) {
+    _classCallCheck(this, Brick);
+
+    this.image = document.querySelector("#gameBrick");
+    this.game = game;
+    this.position = position;
+    this.width = 70;
+    this.height = 65;
+  }
+
+  _createClass(Brick, [{
+    key: "update",
+    value: function update(deltaTime) {}
+  }, {
+    key: "draw",
+    value: function draw(ctx) {
+      ctx.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
+    }
+  }]);
+
+  return Brick;
+}();
+
+exports.default = Brick;
+},{}],"src/Game.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
 
 var _Paddle = _interopRequireDefault(require("./Paddle"));
 
@@ -272,33 +348,88 @@ var _input = _interopRequireDefault(require("./input"));
 
 var _Ball = _interopRequireDefault(require("./Ball"));
 
+var _Brick = _interopRequireDefault(require("./Brick"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Game = /*#__PURE__*/function () {
+  function Game(gameWidth, gameHeight) {
+    _classCallCheck(this, Game);
+
+    this.gameWidth = gameWidth;
+    this.gameHeight = gameHeight;
+  }
+
+  _createClass(Game, [{
+    key: "start",
+    value: function start() {
+      this.paddle = new _Paddle.default(this);
+      this.ball = new _Ball.default(this);
+      new _input.default(this.paddle);
+      var bricks = [];
+
+      for (var i = 0; i <= 10; i++) {
+        bricks.push(new _Brick.default(this, {
+          x: 70 * i + 10,
+          y: 30
+        }));
+      }
+
+      this.gameObjects = [this.ball, this.paddle].concat(bricks);
+    }
+  }, {
+    key: "update",
+    value: function update(deltaTime) {
+      this.gameObjects.forEach(function (object) {
+        return object.update(deltaTime);
+      });
+    }
+  }, {
+    key: "draw",
+    value: function draw(ctx) {
+      this.gameObjects.forEach(function (object) {
+        return object.draw(ctx);
+      });
+    }
+  }]);
+
+  return Game;
+}();
+
+exports.default = Game;
+},{"./Paddle":"src/Paddle.js","./input":"src/input.js","./Ball":"src/Ball.js","./Brick":"src/Brick.js"}],"src/index.js":[function(require,module,exports) {
+"use strict";
+
+var _Game = _interopRequireDefault(require("./Game"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var canvas = document.querySelector("#gameScreen");
 var ctx = canvas.getContext("2d");
 var GAME_WIDTH = 800;
 var GAME_HEIGHT = 600;
-var paddle = new _Paddle.default(GAME_WIDTH, GAME_HEIGHT);
-var ball = new _Ball.default();
-new _input.default(paddle);
+var game = new _Game.default(GAME_WIDTH, GAME_HEIGHT);
+game.start();
 var lastTime = 0;
-paddle.draw(ctx);
 
 function gameLoop(timeStamp) {
   var deltaTime = timeStamp - lastTime;
   lastTime = timeStamp; //clear the canvas screen
 
-  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); //update paddle position
-
-  paddle.update(deltaTime); //redraw paddle
-
-  paddle.draw(ctx);
-  ball.draw(ctx);
+  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  game.update(deltaTime);
+  game.draw(ctx);
   requestAnimationFrame(gameLoop);
 }
 
 requestAnimationFrame(gameLoop);
-},{"./Paddle":"src/Paddle.js","./input":"src/input.js","./Ball":"src/Ball.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./Game":"src/Game.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -326,7 +457,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56406" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57488" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
