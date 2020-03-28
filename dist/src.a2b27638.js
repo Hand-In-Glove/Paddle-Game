@@ -135,8 +135,11 @@ var Paddle = /*#__PURE__*/function () {
   function Paddle(gameWidth, gameHeight) {
     _classCallCheck(this, Paddle);
 
+    this.gameWidth = gameWidth;
     this.height = 20;
     this.width = 150;
+    this.maxSpeed = 5;
+    this.speed = 0;
     this.position = {
       x: gameWidth / 2 - this.width / 2,
       y: gameHeight - this.height - 10
@@ -146,14 +149,40 @@ var Paddle = /*#__PURE__*/function () {
   _createClass(Paddle, [{
     key: "draw",
     value: function draw(ctx) {
-      ctx.fillStyle = "green";
+      ctx.fillStyle = "slategray";
       ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+    }
+  }, {
+    key: "moveLeft",
+    value: function moveLeft() {
+      this.speed = -this.maxSpeed;
+    }
+  }, {
+    key: "moveRight",
+    value: function moveRight() {
+      this.speed = this.maxSpeed;
+    }
+  }, {
+    key: "stop",
+    value: function stop() {
+      this.speed = 0;
     }
   }, {
     key: "update",
     value: function update(deltaTime) {
-      if (!deltaTime) return;
-      this.position.x += 5 / deltaTime;
+      if (!deltaTime) {
+        return;
+      }
+
+      this.position.x += this.speed;
+
+      if (this.position.x < 0) {
+        this.position.x = 0;
+      }
+
+      if (this.position.x + this.width > this.gameWidth) {
+        this.position.x = this.gameWidth - this.width;
+      }
     }
   }]);
 
@@ -171,29 +200,77 @@ exports.default = void 0;
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var InputHandler = function InputHandler() {
+var InputHandler = function InputHandler(paddle) {
   _classCallCheck(this, InputHandler);
 
   document.addEventListener("keydown", function (event) {
     switch (event.keyCode) {
       case 37:
-        alert("moving left");
+        paddle.moveLeft();
         break;
 
       case 39:
-        alert("moving right");
+        paddle.moveRight();
+        break;
+    }
+  });
+  document.addEventListener("keyup", function (event) {
+    switch (event.keyCode) {
+      case 37:
+        paddle.speed < 0 && paddle.stop();
+        break;
+
+      case 39:
+        paddle.speed > 0 && paddle.stop();
         break;
     }
   });
 };
 
 exports.default = InputHandler;
+},{}],"src/Ball.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Ball = /*#__PURE__*/function () {
+  function Ball() {
+    _classCallCheck(this, Ball);
+
+    this.image = document.querySelector("#gameBall");
+  }
+
+  _createClass(Ball, [{
+    key: "draw",
+    value: function draw(ctx) {
+      ctx.drawImage(this.image, 10, 10, 40, 40);
+    }
+  }, {
+    key: "update",
+    value: function update() {}
+  }]);
+
+  return Ball;
+}();
+
+exports.default = Ball;
 },{}],"src/index.js":[function(require,module,exports) {
 "use strict";
 
-var _Paddle = _interopRequireDefault(require("/src/Paddle"));
+var _Paddle = _interopRequireDefault(require("./Paddle"));
 
-var _input = _interopRequireDefault(require("/src/input"));
+var _input = _interopRequireDefault(require("./input"));
+
+var _Ball = _interopRequireDefault(require("./Ball"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -202,21 +279,26 @@ var ctx = canvas.getContext("2d");
 var GAME_WIDTH = 800;
 var GAME_HEIGHT = 600;
 var paddle = new _Paddle.default(GAME_WIDTH, GAME_HEIGHT);
-new _input.default();
+var ball = new _Ball.default();
+new _input.default(paddle);
 var lastTime = 0;
+paddle.draw(ctx);
 
 function gameLoop(timeStamp) {
   var deltaTime = timeStamp - lastTime;
   lastTime = timeStamp; //clear the canvas screen
 
-  ctx.clearRect(0, 0, 800, 600); //update paddle position
+  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); //update paddle position
 
   paddle.update(deltaTime); //redraw paddle
 
   paddle.draw(ctx);
+  ball.draw(ctx);
   requestAnimationFrame(gameLoop);
 }
-},{"/src/Paddle":"src/Paddle.js","/src/input":"src/input.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+
+requestAnimationFrame(gameLoop);
+},{"./Paddle":"src/Paddle.js","./input":"src/input.js","./Ball":"src/Ball.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -244,7 +326,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55379" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56406" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

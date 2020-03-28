@@ -1,3 +1,9 @@
 #gameScreen {
   border: 2px solid black;
 }
+
+#gameBall {
+  height: 40px;
+  width: 40px;
+  display: none;
+}
