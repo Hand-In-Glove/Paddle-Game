@@ -1,3 +1,5 @@
+import { collisionDetect } from "./CollisionDetection";
+
 export default class Brick {
   constructor(game, position) {
     this.image = document.querySelector("#gameBrick");
@@ -9,9 +11,17 @@ export default class Brick {
     this.width = 70;
 
     this.height = 65;
+
+    this.hit = false;
   }
 
-  update(deltaTime) {}
+  update() {
+    if (collisionDetect(this.game.ball, this)) {
+      this.game.ball.speed.y = -this.game.ball.speed.y;
+
+      this.hit = true;
+    }
+  }
 
   draw(ctx) {
     ctx.drawImage(

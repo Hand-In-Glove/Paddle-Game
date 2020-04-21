@@ -199,7 +199,7 @@ exports.default = void 0;
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var InputHandler = function InputHandler(paddle) {
+var InputHandler = function InputHandler(paddle, game) {
   _classCallCheck(this, InputHandler);
 
   document.addEventListener("keydown", function (event) {
@@ -210,6 +210,14 @@ var InputHandler = function InputHandler(paddle) {
 
       case 39:
         paddle.moveRight();
+        break;
+
+      case 27:
+        game.togglePause();
+        break;
+
+      case 32:
+        game.start();
         break;
     }
   });
@@ -227,6 +235,29 @@ var InputHandler = function InputHandler(paddle) {
 };
 
 exports.default = InputHandler;
+},{}],"src/CollisionDetection.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.collisionDetect = collisionDetect;
+
+function collisionDetect(ball, gameObject) {
+  //collision check paddle
+  var bottomOfBall = ball.position.y + ball.size;
+  var topOfBall = ball.position.y;
+  var topOfObject = gameObject.position.y;
+  var bottomOfObject = gameObject.position.y + gameObject.height;
+  var leftOfObject = gameObject.position.x;
+  var rightOfObject = gameObject.position.x + gameObject.width;
+
+  if (bottomOfBall >= topOfObject && topOfBall <= bottomOfObject && ball.position.x >= leftOfObject && ball.position.x + ball.size <= rightOfObject) {
+    return true;
+  } else {
+    return false;
+  }
+}
 },{}],"src/Ball.js":[function(require,module,exports) {
 "use strict";
 
@@ -234,6 +265,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
+
+var _CollisionDetection = require("./CollisionDetection");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -249,18 +282,23 @@ var Ball = /*#__PURE__*/function () {
     this.gameWidth = game.gameWidth;
     this.gameHeight = game.gameHeight;
     this.game = game;
-    this.position = {
-      x: 10,
-      y: 10
-    };
-    this.speed = {
-      x: 5,
-      y: 5
-    };
+    this.reset();
     this.size = 40;
   }
 
   _createClass(Ball, [{
+    key: "reset",
+    value: function reset() {
+      this.position = {
+        x: 100,
+        y: 300
+      };
+      this.speed = {
+        x: 5,
+        y: 5
+      };
+    }
+  }, {
     key: "draw",
     value: function draw(ctx) {
       ctx.drawImage(this.image, this.position.x, this.position.y, this.size, this.size);
@@ -273,18 +311,24 @@ var Ball = /*#__PURE__*/function () {
 
       if (this.position.x + this.size > this.gameWidth || this.position.x < 0) {
         this.speed.x = -this.speed.x;
-      } //collision check top and bottom boundry
+      } //collision check top boundry
 
 
-      if (this.position.y + this.size > this.gameHeight || this.position.y < 0) {
+      if (this.position.y < 0) {
         this.speed.y = -this.speed.y;
+      } //check for bottom and deduct life
+
+
+      if (this.position.y + this.size > this.gameHeight) {
+        this.game.lives--;
+        this.game.paddle.position.x = this.game.gameWidth / 2 - this.game.paddle.width / 2, this.reset();
       } //collision check paddle
 
 
       var leftPaddle = this.game.paddle.position.x;
       var rightPaddle = this.game.paddle.position.x + this.game.paddle.width;
 
-      if (this.position.y + this.size >= this.game.paddle.position.y && this.position.x >= leftPaddle && this.position.x + this.size <= rightPaddle) {
+      if ((0, _CollisionDetection.collisionDetect)(this, this.game.paddle)) {
         this.speed.y = -this.speed.y;
         this.position.y = this.game.paddle.position.y - this.size;
       }
@@ -295,13 +339,15 @@ var Ball = /*#__PURE__*/function () {
 }();
 
 exports.default = Ball;
-},{}],"src/Brick.js":[function(require,module,exports) {
+},{"./CollisionDetection":"src/CollisionDetection.js"}],"src/Brick.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
+
+var _CollisionDetection = require("./CollisionDetection");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -318,11 +364,17 @@ var Brick = /*#__PURE__*/function () {
     this.position = position;
     this.width = 70;
     this.height = 65;
+    this.hit = false;
   }
 
   _createClass(Brick, [{
     key: "update",
-    value: function update(deltaTime) {}
+    value: function update() {
+      if ((0, _CollisionDetection.collisionDetect)(this.game.ball, this)) {
+        this.game.ball.speed.y = -this.game.ball.speed.y;
+        this.hit = true;
+      }
+    }
   }, {
     key: "draw",
     value: function draw(ctx) {
@@ -334,7 +386,40 @@ var Brick = /*#__PURE__*/function () {
 }();
 
 exports.default = Brick;
-},{}],"src/Game.js":[function(require,module,exports) {
+},{"./CollisionDetection":"src/CollisionDetection.js"}],"src/Levels.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.levelBuilder = levelBuilder;
+exports.level2 = exports.level1 = void 0;
+
+var _Brick = _interopRequireDefault(require("./Brick"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function levelBuilder(game, level) {
+  var bricks = [];
+  level.forEach(function (row, rowIndex) {
+    row.forEach(function (brick, brickIndex) {
+      if (brick === 1) {
+        var position = {
+          x: 50 + 70 * brickIndex,
+          y: 65 * rowIndex + 10
+        };
+        bricks.push(new _Brick.default(game, position));
+      }
+    });
+  });
+  return bricks;
+}
+
+var level1 = [[0, 0, 1, 1, 0, 0, 1, 1, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 0, 0], [1, 1, 1, 0, 0, 0, 0, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
+exports.level1 = level1;
+var level2 = [[1, 0, 1, 1, 0, 0, 1, 1, 0, 1], [0, 0, 1, 0, 1, 1, 0, 1, 0, 0], [1, 1, 0, 0, 1, 0, 0, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
+exports.level2 = level2;
+},{"./Brick":"src/Brick.js"}],"src/Game.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -348,9 +433,17 @@ var _input = _interopRequireDefault(require("./input"));
 
 var _Ball = _interopRequireDefault(require("./Ball"));
 
-var _Brick = _interopRequireDefault(require("./Brick"));
+var _Levels = require("./Levels");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -358,52 +451,130 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+var GAME_STATE = {
+  PAUSED: 0,
+  RUNNING: 1,
+  MENU: 2,
+  GAMEOVER: 3,
+  NEWLEVEL: 4
+};
+
 var Game = /*#__PURE__*/function () {
   function Game(gameWidth, gameHeight) {
     _classCallCheck(this, Game);
 
     this.gameWidth = gameWidth;
     this.gameHeight = gameHeight;
+    this.gameState = GAME_STATE.MENU;
+    this.paddle = new _Paddle.default(this);
+    this.ball = new _Ball.default(this);
+    new _input.default(this.paddle, this);
+    this.gameObjects = [];
+    this.lives = 3;
+    this.bricks = [];
+    this.levels = [_Levels.level1, _Levels.level2];
+    this.currentLevel = 0;
   }
 
   _createClass(Game, [{
     key: "start",
     value: function start() {
-      this.paddle = new _Paddle.default(this);
-      this.ball = new _Ball.default(this);
-      new _input.default(this.paddle);
-      var bricks = [];
-
-      for (var i = 0; i <= 10; i++) {
-        bricks.push(new _Brick.default(this, {
-          x: 70 * i + 10,
-          y: 30
-        }));
+      if (this.gameState !== GAME_STATE.MENU && this.gameState !== GAME_STATE.NEWLEVEL) {
+        return;
       }
 
-      this.gameObjects = [this.ball, this.paddle].concat(bricks);
+      this.bricks = (0, _Levels.levelBuilder)(this, this.levels[this.currentLevel]);
+      this.ball.reset();
+      this.gameObjects = [this.ball, this.paddle];
+      this.gameState = GAME_STATE.RUNNING;
     }
   }, {
     key: "update",
     value: function update(deltaTime) {
-      this.gameObjects.forEach(function (object) {
+      if (this.lives === 0) {
+        this.gameState = GAME_STATE.GAMEOVER;
+      }
+
+      if (this.gameState === GAME_STATE.PAUSED || this.gameState === GAME_STATE.MENU || this.gameState === GAME_STATE.GAMEOVER) {
+        return;
+      }
+
+      if (this.bricks.length === 0) {
+        this.currentLevel++;
+        this.gameState = GAME_STATE.NEWLEVEL;
+        this.start();
+      }
+
+      [].concat(_toConsumableArray(this.gameObjects), _toConsumableArray(this.bricks)).forEach(function (object) {
         return object.update(deltaTime);
+      });
+      this.bricks = this.bricks.filter(function (brick) {
+        return !brick.hit;
       });
     }
   }, {
     key: "draw",
     value: function draw(ctx) {
-      this.gameObjects.forEach(function (object) {
+      [].concat(_toConsumableArray(this.gameObjects), _toConsumableArray(this.bricks)).forEach(function (object) {
         return object.draw(ctx);
       });
+
+      if (this.gameState === GAME_STATE.PAUSED) {
+        ctx.rect(0, 0, this.gameWidth, this.gameHeight);
+        ctx.fillStyle = "rgba(50,50,250,0.5)";
+        ctx.fill();
+        ctx.font = "50px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "white";
+        ctx.fillText("Paused", this.gameWidth / 2, this.gameHeight / 2);
+      }
+
+      if (this.gameState === GAME_STATE.MENU) {
+        ctx.rect(0, 0, this.gameWidth, this.gameHeight);
+        var menuGrad = ctx.createLinearGradient(0, 0, this.gameWidth, this.gameHeight);
+        menuGrad.addColorStop(0, "rgb(0,150,250)");
+        menuGrad.addColorStop(1, "rgb(100,255,100)");
+        ctx.fillStyle = menuGrad;
+        ctx.fill();
+        ctx.font = "50px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "white";
+        ctx.fillText("Press SPACEBAR to Start Game", this.gameWidth / 2, this.gameHeight / 2);
+        ctx.fillText("Press ESC to Pause ", this.gameWidth / 2, this.gameHeight / 2 + 60);
+      }
+
+      if (this.gameState === GAME_STATE.GAMEOVER) {
+        ctx.rect(0, 0, this.gameWidth, this.gameHeight);
+        ctx.fillStyle = "rgba(50,50,250,0.8)";
+        ctx.fill();
+        ctx.font = "50px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "white";
+        ctx.fillText("GAME OVER FOOL", this.gameWidth / 2, this.gameHeight / 2);
+      }
     }
+  }, {
+    key: "togglePause",
+    value: function togglePause() {
+      if (this.gameState === GAME_STATE.PAUSED) {
+        this.gameState = GAME_STATE.RUNNING;
+      } else {
+        this.gameState = GAME_STATE.PAUSED;
+      }
+    } // toggleMenu() {
+    //   if (this.gameState === GAME_STATE.MENU) {
+    //     this.gameState = GAME_STATE.RUNNING;
+    //   } else {
+    //  }
+    // }
+
   }]);
 
   return Game;
 }();
 
 exports.default = Game;
-},{"./Paddle":"src/Paddle.js","./input":"src/input.js","./Ball":"src/Ball.js","./Brick":"src/Brick.js"}],"src/index.js":[function(require,module,exports) {
+},{"./Paddle":"src/Paddle.js","./input":"src/input.js","./Ball":"src/Ball.js","./Levels":"src/Levels.js"}],"src/index.js":[function(require,module,exports) {
 "use strict";
 
 var _Game = _interopRequireDefault(require("./Game"));
@@ -411,11 +582,11 @@ var _Game = _interopRequireDefault(require("./Game"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var canvas = document.querySelector("#gameScreen");
+var gameBG = document.querySelector("#gameBackground");
 var ctx = canvas.getContext("2d");
 var GAME_WIDTH = 800;
 var GAME_HEIGHT = 600;
 var game = new _Game.default(GAME_WIDTH, GAME_HEIGHT);
-game.start();
 var lastTime = 0;
 
 function gameLoop(timeStamp) {
@@ -423,6 +594,7 @@ function gameLoop(timeStamp) {
   lastTime = timeStamp; //clear the canvas screen
 
   ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  ctx.drawImage(gameBG, 100, 20);
   game.update(deltaTime);
   game.draw(ctx);
   requestAnimationFrame(gameLoop);
@@ -457,7 +629,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57488" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51574" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

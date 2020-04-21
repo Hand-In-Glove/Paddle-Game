@@ -3,6 +3,7 @@
 }
 
 #gameBall,
-#gameBrick {
+#gameBrick,
+#gameBackground {
   display: none;
 }
