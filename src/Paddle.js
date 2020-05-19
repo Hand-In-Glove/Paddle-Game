@@ -4,13 +4,13 @@ export default class Paddle {
     this.height = 20;
     this.width = 150;
 
-    this.maxSpeed = 5;
+    this.maxSpeed = 10;
 
     this.speed = 0;
 
     this.position = {
       x: game.gameWidth / 2 - this.width / 2,
-      y: game.gameHeight - this.height - 10
+      y: game.gameHeight - this.height - 10,
     };
   }
 

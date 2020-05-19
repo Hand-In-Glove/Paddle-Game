@@ -138,7 +138,7 @@ var Paddle = /*#__PURE__*/function () {
     this.gameWidth = game.gameWidth;
     this.height = 20;
     this.width = 150;
-    this.maxSpeed = 5;
+    this.maxSpeed = 10;
     this.speed = 0;
     this.position = {
       x: game.gameWidth / 2 - this.width / 2,
@@ -219,6 +219,9 @@ var InputHandler = function InputHandler(paddle, game) {
       case 32:
         game.start();
         break;
+
+      case 82:
+        game.restartGame();
     }
   });
   document.addEventListener("keyup", function (event) {
@@ -329,7 +332,7 @@ var Ball = /*#__PURE__*/function () {
       var rightPaddle = this.game.paddle.position.x + this.game.paddle.width;
 
       if ((0, _CollisionDetection.collisionDetect)(this, this.game.paddle)) {
-        this.speed.y = -this.speed.y;
+        this.speed.y = -this.speed.y * 1.06;
         this.position.y = this.game.paddle.position.y - this.size;
       }
     }
@@ -393,7 +396,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.levelBuilder = levelBuilder;
-exports.level2 = exports.level1 = void 0;
+exports.level3 = exports.level2 = exports.level1 = void 0;
 
 var _Brick = _interopRequireDefault(require("./Brick"));
 
@@ -419,6 +422,8 @@ var level1 = [[0, 0, 1, 1, 0, 0, 1, 1, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 0, 0], [1
 exports.level1 = level1;
 var level2 = [[1, 0, 1, 1, 0, 0, 1, 1, 0, 1], [0, 0, 1, 0, 1, 1, 0, 1, 0, 0], [1, 1, 0, 0, 1, 0, 0, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
 exports.level2 = level2;
+var level3 = [[0, 1, 0, 1, 0, 1, 0, 1, 0, 1], [1, 0, 1, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 1, 0, 1], [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]];
+exports.level3 = level3;
 },{"./Brick":"src/Brick.js"}],"src/Game.js":[function(require,module,exports) {
 "use strict";
 
@@ -456,7 +461,8 @@ var GAME_STATE = {
   RUNNING: 1,
   MENU: 2,
   GAMEOVER: 3,
-  NEWLEVEL: 4
+  NEWLEVEL: 4,
+  VICTORY: 5
 };
 
 var Game = /*#__PURE__*/function () {
@@ -472,7 +478,7 @@ var Game = /*#__PURE__*/function () {
     this.gameObjects = [];
     this.lives = 3;
     this.bricks = [];
-    this.levels = [_Levels.level1, _Levels.level2];
+    this.levels = [_Levels.level1, _Levels.level2, _Levels.level3];
     this.currentLevel = 0;
   }
 
@@ -495,14 +501,19 @@ var Game = /*#__PURE__*/function () {
         this.gameState = GAME_STATE.GAMEOVER;
       }
 
-      if (this.gameState === GAME_STATE.PAUSED || this.gameState === GAME_STATE.MENU || this.gameState === GAME_STATE.GAMEOVER) {
+      if (this.gameState === GAME_STATE.PAUSED || this.gameState === GAME_STATE.MENU || this.gameState === GAME_STATE.GAMEOVER || this.gameState === GAME_STATE.VICTORY) {
         return;
       }
 
       if (this.bricks.length === 0) {
         this.currentLevel++;
-        this.gameState = GAME_STATE.NEWLEVEL;
-        this.start();
+
+        if (this.currentLevel === this.levels.length) {
+          this.gameState = GAME_STATE.VICTORY;
+        } else {
+          this.gameState = GAME_STATE.NEWLEVEL;
+          this.start();
+        }
       }
 
       [].concat(_toConsumableArray(this.gameObjects), _toConsumableArray(this.bricks)).forEach(function (object) {
@@ -551,6 +562,24 @@ var Game = /*#__PURE__*/function () {
         ctx.textAlign = "center";
         ctx.fillStyle = "white";
         ctx.fillText("GAME OVER FOOL", this.gameWidth / 2, this.gameHeight / 2);
+        ctx.fillText("Press R to Restart ", this.gameWidth / 2, this.gameHeight / 2 + 60);
+      }
+
+      if (this.gameState === GAME_STATE.VICTORY) {
+        ctx.rect(0, 0, this.gameWidth, this.gameHeight);
+
+        var _menuGrad = ctx.createLinearGradient(0, 0, this.gameWidth, this.gameHeight);
+
+        _menuGrad.addColorStop(1, "rgb(250,90,50)");
+
+        _menuGrad.addColorStop(0, "rgb(250,255,100)");
+
+        ctx.fillStyle = _menuGrad;
+        ctx.fill();
+        ctx.font = "50px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "black";
+        ctx.fillText("YOU BEAT THE GAME DAWG", this.gameWidth / 2, this.gameHeight / 2);
       }
     }
   }, {
@@ -561,6 +590,16 @@ var Game = /*#__PURE__*/function () {
       } else {
         this.gameState = GAME_STATE.PAUSED;
       }
+    }
+  }, {
+    key: "restartGame",
+    value: function restartGame() {
+      // if (this.gameState !== GAME_STATE.GAMEOVER) {
+      //   return;
+      // } else {
+      this.lives = 3;
+      this.currentLevel = 0;
+      this.gameState = GAME_STATE.MENU; // }
     } // toggleMenu() {
     //   if (this.gameState === GAME_STATE.MENU) {
     //     this.gameState = GAME_STATE.RUNNING;
@@ -629,7 +668,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51574" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59903" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

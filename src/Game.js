@@ -1,14 +1,15 @@
 import Paddle from "./Paddle";
 import InputHandler from "./input";
 import Ball from "./Ball";
-import { level1, level2, levelBuilder } from "./Levels";
+import { level1, level2, level3, levelBuilder } from "./Levels";
 
 const GAME_STATE = {
   PAUSED: 0,
   RUNNING: 1,
   MENU: 2,
   GAMEOVER: 3,
-  NEWLEVEL: 4
+  NEWLEVEL: 4,
+  VICTORY: 5,
 };
 
 export default class Game {
@@ -22,7 +23,7 @@ export default class Game {
     this.gameObjects = [];
     this.lives = 3;
     this.bricks = [];
-    this.levels = [level1, level2];
+    this.levels = [level1, level2, level3];
     this.currentLevel = 0;
   }
 
@@ -51,26 +52,31 @@ export default class Game {
     if (
       this.gameState === GAME_STATE.PAUSED ||
       this.gameState === GAME_STATE.MENU ||
-      this.gameState === GAME_STATE.GAMEOVER
+      this.gameState === GAME_STATE.GAMEOVER ||
+      this.gameState === GAME_STATE.VICTORY
     ) {
       return;
     }
 
     if (this.bricks.length === 0) {
       this.currentLevel++;
-      this.gameState = GAME_STATE.NEWLEVEL;
-      this.start();
+      if (this.currentLevel === this.levels.length) {
+        this.gameState = GAME_STATE.VICTORY;
+      } else {
+        this.gameState = GAME_STATE.NEWLEVEL;
+        this.start();
+      }
     }
 
-    [...this.gameObjects, ...this.bricks].forEach(object =>
+    [...this.gameObjects, ...this.bricks].forEach((object) =>
       object.update(deltaTime)
     );
 
-    this.bricks = this.bricks.filter(brick => !brick.hit);
+    this.bricks = this.bricks.filter((brick) => !brick.hit);
   }
 
   draw(ctx) {
-    [...this.gameObjects, ...this.bricks].forEach(object => object.draw(ctx));
+    [...this.gameObjects, ...this.bricks].forEach((object) => object.draw(ctx));
 
     if (this.gameState === GAME_STATE.PAUSED) {
       ctx.rect(0, 0, this.gameWidth, this.gameHeight);
@@ -117,6 +123,33 @@ export default class Game {
       ctx.textAlign = "center";
       ctx.fillStyle = "white";
       ctx.fillText("GAME OVER FOOL", this.gameWidth / 2, this.gameHeight / 2);
+      ctx.fillText(
+        "Press R to Restart ",
+        this.gameWidth / 2,
+        this.gameHeight / 2 + 60
+      );
+    }
+
+    if (this.gameState === GAME_STATE.VICTORY) {
+      ctx.rect(0, 0, this.gameWidth, this.gameHeight);
+      let menuGrad = ctx.createLinearGradient(
+        0,
+        0,
+        this.gameWidth,
+        this.gameHeight
+      );
+      menuGrad.addColorStop(1, "rgb(250,90,50)");
+      menuGrad.addColorStop(0, "rgb(250,255,100)");
+      ctx.fillStyle = menuGrad;
+      ctx.fill();
+      ctx.font = "50px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "black";
+      ctx.fillText(
+        "YOU BEAT THE GAME DAWG",
+        this.gameWidth / 2,
+        this.gameHeight / 2
+      );
     }
   }
 
@@ -126,6 +159,16 @@ export default class Game {
     } else {
       this.gameState = GAME_STATE.PAUSED;
     }
+  }
+
+  restartGame() {
+    // if (this.gameState !== GAME_STATE.GAMEOVER) {
+    //   return;
+    // } else {
+    this.lives = 3;
+    this.currentLevel = 0;
+    this.gameState = GAME_STATE.MENU;
+    // }
   }
 
   // toggleMenu() {

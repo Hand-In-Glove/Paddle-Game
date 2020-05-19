@@ -1,5 +1,10 @@
 #gameScreen {
   border: 2px solid black;
+  margin: 0 auto;
+}
+#gameScreenContainer {
+  display: flex;
+  justify-content: center;
 }
 
 #gameBall,

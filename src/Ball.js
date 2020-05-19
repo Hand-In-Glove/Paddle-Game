@@ -57,7 +57,7 @@ export default class Ball {
     const rightPaddle = this.game.paddle.position.x + this.game.paddle.width;
 
     if (collisionDetect(this, this.game.paddle)) {
-      this.speed.y = -this.speed.y;
+      this.speed.y = -this.speed.y * 1.06;
       this.position.y = this.game.paddle.position.y - this.size;
     }
   }
